@@ -12,7 +12,7 @@ This benchmark reimplements similar **single-threaded workloads** in **Node.js, 
 
 ## Workloads
 
-See [`docs/benchmark-design.md`](./docs/benchmark-design.md) for full details.
+See [docs/benchmark-design.md](./docs/benchmark-design.md) for full details.
 
 - **CPU-intensive**
   - SHA-256 hashing loop (500k iterations) to exercise raw compute performance.
@@ -40,7 +40,7 @@ See [`docs/benchmark-design.md`](./docs/benchmark-design.md) for full details.
 - DynamoDB storage with pre-computed aggregates
 - Parallel execution across all functions  
 
-📖 Full design documentation in [`/docs`](./docs)
+📖 Full design documentation in [/docs](./docs)
 
  
 ## Quick Start
@@ -139,19 +139,19 @@ Results are stored in DynamoDB with pre-computed aggregates (mean, median, p50/p
 ## Documentation
 
 **Design & Architecture:**
-- [`docs/benchmark-design.md`](./docs/benchmark-design.md) - Test matrix, workloads, orchestration
-- [`DECISIONS.md`](./DECISIONS.md) - Architectural decision records (ADRs)
+- [docs/benchmark-design.md](./docs/benchmark-design.md) - Test matrix, workloads, orchestration
+- [DECISIONS.md](./DECISIONS.md) - Architectural decision records (ADRs)
 
 **Implementation:**
-- [`docs/handler-api-spec.md`](./docs/handler-api-spec.md) - Lambda handler contract
-- [`docs/metrics-collection-implementation.md`](./docs/metrics-collection-implementation.md) - CloudWatch REPORT parsing
-- [`docs/dynamodb-schema.md`](./docs/dynamodb-schema.md) - Results storage schema
+- [docs/handler-api-spec.md](./docs/handler-api-spec.md) - Lambda handler contract
+- [docs/metrics-collection-implementation.md](./docs/metrics-collection-implementation.md) - CloudWatch REPORT parsing
+- [docs/dynamodb-schema.md](./docs/dynamodb-schema.md) - Results storage schema
 
 ## Contributing
 
 This is a research benchmark project. Feel free to fork it, or if you find issues or have suggestions:
 
-1. Check existing [ADRs in DECISIONS.md](./DECISIONS.md) to understand design rationale
+1. Check existing ADRs in [DECISIONS.md](./DECISIONS.md) to understand design rationale
 2. Review [benchmark-design.md](./docs/benchmark-design.md) for methodology
 3. Open an issue with your findings or proposed changes
 
