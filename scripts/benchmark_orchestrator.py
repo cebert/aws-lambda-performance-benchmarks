@@ -16,6 +16,7 @@ Key Features:
 import base64
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -44,6 +45,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 BOTO_CONFIG = Config(
+    region_name=os.environ.get("AWS_REGION", "us-east-2"),  # Support EC2 execution and local
     retries={"max_attempts": 10, "mode": "standard"},
     max_pool_connections=50,  # High limit for parallel execution (up to 12 workers)
     read_timeout=250,  # Must exceed Lambda timeout (240s) to handle slow executions at low memory
@@ -964,24 +966,32 @@ Examples:
         dest="max_workers",
         help="Number of functions to test in parallel (default: 12)",
     )
+    parser.add_argument(
+        "--yes",
+        "-y",
+        action="store_true",
+        help="Auto-confirm prompts (useful for automated/non-interactive execution)",
+    )
 
     args = parser.parse_args()
 
     if args.production:
         log.warning("WARNING: Running in PRODUCTION mode with maximum iteration counts!")
         log.warning("This will take 18-24 hours and cost ~$5-10 in Lambda invocations.")
-        response = input("Continue? (yes/no): ")
-        if response.lower() != "yes":
-            log.info("Aborted.")
-            exit(0)
+        if not args.yes:
+            response = input("Continue? (yes/no): ")
+            if response.lower() != "yes":
+                log.info("Aborted.")
+                exit(0)
         config = PRODUCTION_CONFIG
     elif args.balanced:
         log.info("Running in BALANCED mode (publication-quality statistics)")
         log.info("Estimated time: 6-8 hours, estimated cost: ~$2-4")
-        response = input("Continue? (yes/no): ")
-        if response.lower() != "yes":
-            log.info("Aborted.")
-            exit(0)
+        if not args.yes:
+            response = input("Continue? (yes/no): ")
+            if response.lower() != "yes":
+                log.info("Aborted.")
+                exit(0)
         config = BALANCED_CONFIG
     else:
         log.info("Running in TEST mode with minimal iteration counts")

@@ -101,6 +101,51 @@ uv  run  python  scripts/benchmark_orchestrator.py  --production
 
 Each mode tests all 36 functions across multiple memory configurations. Higher modes provide better statistical confidence.
 
+### Running Long Benchmarks (Balanced/Production Mode)
+
+**IMPORTANT:** For Balanced (~1 hour) and Production (several hours) modes, AWS SSO tokens may expire mid-test, causing benchmark failures.
+
+**Recommended Solution:** Run benchmarks on an EC2 instance with an IAM instance profile (no credential expiration).
+
+**Prerequisites:**
+- LambdaBenchmarkStack must already be deployed (`npm run deploy`)
+- IAM permissions to create EC2 instances, IAM roles, and security groups
+
+**Usage:**
+```bash
+# Launch EC2 instance that auto-runs benchmark and terminates when complete
+uv run python scripts/run_benchmark_on_ec2.py --mode balanced
+# Production mode (several hours)
+uv run python scripts/run_benchmark_on_ec2.py --mode production
+# Keep instance alive for debugging
+uv run python scripts/run_benchmark_on_ec2.py --mode balanced --keep-alive
+# Upload results to S3
+uv run python scripts/run_benchmark_on_ec2.py --mode production --s3-bucket my-results-bucket
+```
+
+**Benefits:**
+- No SSO token expiration issues
+- Runs in background (immune to laptop sleep/network issues)
+- Auto-terminates after completion (unless `--keep-alive` specified)
+- Cost-effective: t4g.micro instance
+
+**Monitor progress:**
+```bash
+# View instance status
+aws ec2 describe-instance-status --instance-ids <instance-id>
+# Stream benchmark logs (once instance is running)
+aws logs tail /var/log/cloud-init-output.log --follow
+# SSH into instance (requires AWS Systems Manager)
+aws ssm start-session --target <instance-id>
+```
+
+**Alternative (Local Execution):** If running locally, extend your SSO session duration before starting:
+```bash
+aws sso login --profile <your-profile>  # Refresh token before benchmark
+```
+
+Note: SSO session duration is configurable in your AWS SSO settings (typically 8-12 hours max). For Production mode (18-24 hours), EC2 execution is strongly recommended.
+
 ## Analyze Results
 
 After running a benchmark, analyze the results:
@@ -108,7 +153,6 @@ After running a benchmark, analyze the results:
 ```bash
 # Analyze all results for a test run
 uv  run  python  scripts/analyze_results.py <test-run-id>
-
 # Filter by specific dimensions
 uv  run  python  scripts/analyze_results.py <test-run-id> --runtime  python3.13
 uv  run  python  scripts/analyze_results.py <test-run-id> --workload  cpu-intensive

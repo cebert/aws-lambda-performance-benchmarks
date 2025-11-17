@@ -57,6 +57,18 @@ uv run python scripts/benchmark_orchestrator.py --production
 
 Configuration details in `scripts/benchmark_orchestrator.py` (TEST_CONFIG, BALANCED_CONFIG, PRODUCTION_CONFIG) and `scripts/benchmark_utils.py` (MEMORY_CONFIGS).
 
+**EC2 Execution (Recommended for Balanced/Production):**
+For Balanced (~1 hour) and Production (several hours) modes, AWS SSO tokens may expire mid-test. Use EC2 instance with IAM instance profile to avoid credential expiration:
+
+```bash
+# Launch EC2 that auto-runs benchmark and terminates when complete
+uv run python scripts/run_benchmark_on_ec2.py --mode balanced
+uv run python scripts/run_benchmark_on_ec2.py --mode production
+uv run python scripts/run_benchmark_on_ec2.py --mode production --s3-bucket my-results
+```
+
+Benefits: No SSO token expiration, immune to laptop sleep/network issues, auto-terminates.
+
 ### Analyze Results
 ```bash
 uv run python scripts/analyze_results.py <test-run-id>
