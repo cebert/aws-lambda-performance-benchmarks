@@ -1,0 +1,34 @@
+[project]
+name = "aws-lambda-arm-x86-benchmark"
+version = "1.0.0"
+description = "Comprehensive benchmark comparing AWS Lambda ARM vs x86 performance"
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Runtime dependencies for orchestration and analysis scripts
+dependencies = [
+    "boto3>=1.28.0",
+    "matplotlib>=3.7.0",
+]
+
+[project.optional-dependencies]
+# Development tools
+dev = [
+    "ruff>=0.1.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".git", ".venv", "__pycache__", "*.egg-info", "cdk.out", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "ARG", "SIM"]
+ignore = ["E501", "B008", "B904"]
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+

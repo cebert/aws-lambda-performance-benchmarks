@@ -1,0 +1,50 @@
+{
+  "name": "aws-lambda-arm-x86-benchmark-cdk",
+  "version": "1.0.0",
+  "description": "CDK IaC to deploy benchmark project",
+  "keywords": [
+    "aws",
+    "lambda",
+    "arm",
+    "graviton",
+    "benchmark",
+    "performance",
+    "cdk"
+  ],
+  "homepage": "https://github.com/cebert/aws-lambda-arm-x86-benchmark#readme",
+  "bugs": {
+    "url": "https://github.com/cebert/aws-lambda-arm-x86-benchmark/issues"
+  },
+  "license": "MIT",
+  "author": "Chris Ebert",
+  "bin": {
+    "cdk": "bin/cdk.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cebert/aws-lambda-arm-x86-benchmark.git"
+  },
+  "scripts": {
+    "bootstrap": "npx aws-cdk bootstrap",
+    "build": "tsc",
+    "cdk": "npx aws-cdk",
+    "deploy": "npx aws-cdk deploy --require-approval never",
+    "destroy": "npx aws-cdk destroy",
+    "diff": "npx aws-cdk diff",
+    "ls": "npx aws-cdk ls",
+    "synth": "npx aws-cdk synth",
+    "watch": "tsc -w"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.221.0",
+    "cdk-nag": "^2.37.55",
+    "constructs": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.7.9",
+    "aws-cdk": "^2.1031.2",
+    "cargo-lambda-cdk": "^0.0.35",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}

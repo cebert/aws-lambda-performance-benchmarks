@@ -1,0 +1,59 @@
+{
+  "name": "aws-lambda-arm-x86-benchmark",
+  "version": "1.0.0",
+  "description": "Comprehensive benchmark comparing AWS Lambda ARM vs x86 performance",
+  "keywords": [
+    "aws",
+    "lambda",
+    "arm",
+    "graviton",
+    "benchmark",
+    "performance",
+    "cdk"
+  ],
+  "homepage": "https://github.com/yourusername/aws-lambda-arm-x86-benchmark#readme",
+  "bugs": {
+    "url": "https://github.com/yourusername/aws-lambda-arm-x86-benchmark/issues"
+  },
+  "license": "MIT",
+  "author": "",
+  "workspaces": [
+    "cdk",
+    "lambdas/nodejs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cebert/aws-lambda-arm-x86-benchmark.git"
+  },
+  "scripts": {
+    "benchmark:prod": "uv run python scripts/benchmark_orchestrator.py --production",
+    "benchmark:test": "uv run python scripts/benchmark_orchestrator.py --test",
+    "build": "npm run build --workspaces --if-present",
+    "clean": "rm -rf node_modules cdk/node_modules lambdas/nodejs/node_modules .venv",
+    "deploy": "cd cdk && npx cdk deploy --require-approval never",
+    "deploy:watch": "cd cdk && npx cdk watch",
+    "destroy": "cd cdk && npx cdk destroy",
+    "diff": "cd cdk && npx cdk diff",
+    "format": "npm run format:ts && npm run format:py",
+    "format:check": "prettier --check '**/*.{ts,tsx,js,jsx,json,md,yml,yaml}'",
+    "format:py": "uv run ruff format .",
+    "format:ts": "prettier --write '**/*.{ts,tsx,js,jsx,json,md,yml,yaml}'",
+    "lint": "npm run lint:ts && npm run lint:py",
+    "lint:py": "uv run ruff check .",
+    "lint:py:fix": "uv run ruff check --fix .",
+    "lint:ts": "eslint '**/*.{ts,tsx,js,jsx}' --max-warnings 0",
+    "lint:ts:fix": "eslint '**/*.{ts,tsx,js,jsx}' --fix",
+    "setup:python": "uv sync --all-extras",
+    "synth": "cd cdk && npm run synth"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
