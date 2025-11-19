@@ -684,6 +684,350 @@ def create_memory_scaling_chart(
     plt.close()
 
 
+def create_nodejs_rust_comparison_chart(
+    aggregates: list[dict[str, Any]],
+    workload: str,
+    invocation_type: str,
+    output_dir: Path,
+) -> None:
+    """
+    Create comparison chart showing only Node.js and Rust runtimes.
+
+    This chart excludes Python runtimes to provide a clearer view of Node.js vs Rust
+    performance without the visual clutter of 4 Python versions.
+    """
+    # Filter for only Node.js and Rust runtimes
+    filtered = [
+        agg
+        for agg in filter_aggregates(
+            aggregates, workload_type=workload, invocation_type=invocation_type, only_successful=True
+        )
+        if agg["runtime"].startswith("nodejs") or agg["runtime"] == "rust"
+    ]
+
+    if not filtered:
+        return
+
+    # Group by runtime + architecture
+    series_data = defaultdict(lambda: {"memory": [], "duration": [], "p99": []})
+
+    for agg in filtered:
+        runtime = agg["runtime"]
+        arch = agg["architecture"]
+        memory_mb = agg["memorySizeMB"]
+
+        key = f"{runtime}-{arch}"
+
+        # Calculate total time (init + duration for cold, just duration for warm)
+        if invocation_type == "cold":
+            init_mean = agg["initDurationStats"]["mean"]
+            duration_mean = agg["durationStats"]["mean"]
+            total_time = init_mean + duration_mean
+        else:
+            total_time = agg["durationStats"]["mean"]
+
+        p99 = agg["durationStats"].get("p99", 0)
+
+        series_data[key]["memory"].append(memory_mb)
+        series_data[key]["duration"].append(total_time)
+        series_data[key]["p99"].append(p99)
+
+    # Sort memory values for each series
+    for key in series_data:
+        combined = list(
+            zip(
+                series_data[key]["memory"],
+                series_data[key]["duration"],
+                series_data[key]["p99"],
+                strict=False,
+            )
+        )
+        combined.sort(key=lambda x: x[0])
+        series_data[key]["memory"] = [x[0] for x in combined]
+        series_data[key]["duration"] = [x[1] for x in combined]
+        series_data[key]["p99"] = [x[2] for x in combined]
+
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    for key in sorted(series_data.keys()):
+        runtime = key.rsplit("-", 1)[0]
+        arch = key.rsplit("-", 1)[1]
+
+        color = RUNTIME_COLORS.get(runtime, "#000000")
+        linestyle = "-" if arch == "arm64" else "--"
+        marker = "o" if arch == "arm64" else "s"
+
+        ax.plot(
+            series_data[key]["memory"],
+            series_data[key]["duration"],
+            label=key,
+            color=color,
+            linestyle=linestyle,
+            marker=marker,
+            linewidth=2.5 if arch == "arm64" else 2,
+            markersize=7,
+            alpha=0.8,
+        )
+
+    ax.set_xlabel("Memory Configuration (MB)", fontsize=13, fontweight="bold")
+    y_label = (
+        "Total Time (init+duration, ms)" if invocation_type == "cold" else "Mean Duration (ms)"
+    )
+    ax.set_ylabel(y_label, fontsize=13, fontweight="bold")
+    subtitle = "(init+duration)" if invocation_type == "cold" else ""
+    ax.set_title(
+        f"Node.js & Rust Comparison: {format_workload_name(workload)} - {invocation_type.title()} Starts {subtitle}\n"
+        f"Solid lines = ARM64, Dashed lines = x86",
+        fontsize=15,
+        fontweight="bold",
+    )
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=10)
+    ax.grid(alpha=0.3, which="both", linestyle=":")
+    ax.set_xscale("log", base=2)
+
+    # Set custom tick labels
+    all_memory_values = sorted(
+        set(mem for series in series_data.values() for mem in series["memory"])
+    )
+    ax.set_xticks(all_memory_values)
+    ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
+
+    plt.tight_layout()
+    chart_path = output_dir / "charts" / workload / f"nodejs-rust-comparison-{invocation_type}.png"
+    chart_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(chart_path, dpi=CHART_DPI, bbox_inches="tight")
+    plt.close()
+
+
+def create_python_comparison_chart(
+    aggregates: list[dict[str, Any]],
+    workload: str,
+    invocation_type: str,
+    output_dir: Path,
+) -> None:
+    """
+    Create comparison chart showing only Python runtimes.
+
+    With 4 Python versions (3.14, 3.13, 3.12, 3.11), this dedicated chart makes it
+    easier to compare Python version performance across architectures.
+    """
+    # Filter for only Python runtimes
+    filtered = [
+        agg
+        for agg in filter_aggregates(
+            aggregates, workload_type=workload, invocation_type=invocation_type, only_successful=True
+        )
+        if agg["runtime"].startswith("python")
+    ]
+
+    if not filtered:
+        return
+
+    # Group by runtime + architecture
+    series_data = defaultdict(lambda: {"memory": [], "duration": [], "p99": []})
+
+    for agg in filtered:
+        runtime = agg["runtime"]
+        arch = agg["architecture"]
+        memory_mb = agg["memorySizeMB"]
+
+        key = f"{runtime}-{arch}"
+
+        # Calculate total time (init + duration for cold, just duration for warm)
+        if invocation_type == "cold":
+            init_mean = agg["initDurationStats"]["mean"]
+            duration_mean = agg["durationStats"]["mean"]
+            total_time = init_mean + duration_mean
+        else:
+            total_time = agg["durationStats"]["mean"]
+
+        p99 = agg["durationStats"].get("p99", 0)
+
+        series_data[key]["memory"].append(memory_mb)
+        series_data[key]["duration"].append(total_time)
+        series_data[key]["p99"].append(p99)
+
+    # Sort memory values for each series
+    for key in series_data:
+        combined = list(
+            zip(
+                series_data[key]["memory"],
+                series_data[key]["duration"],
+                series_data[key]["p99"],
+                strict=False,
+            )
+        )
+        combined.sort(key=lambda x: x[0])
+        series_data[key]["memory"] = [x[0] for x in combined]
+        series_data[key]["duration"] = [x[1] for x in combined]
+        series_data[key]["p99"] = [x[2] for x in combined]
+
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    for key in sorted(series_data.keys()):
+        runtime = key.rsplit("-", 1)[0]
+        arch = key.rsplit("-", 1)[1]
+
+        color = RUNTIME_COLORS.get(runtime, "#000000")
+        linestyle = "-" if arch == "arm64" else "--"
+        marker = "o" if arch == "arm64" else "s"
+
+        ax.plot(
+            series_data[key]["memory"],
+            series_data[key]["duration"],
+            label=key,
+            color=color,
+            linestyle=linestyle,
+            marker=marker,
+            linewidth=2.5 if arch == "arm64" else 2,
+            markersize=7,
+            alpha=0.8,
+        )
+
+    ax.set_xlabel("Memory Configuration (MB)", fontsize=13, fontweight="bold")
+    y_label = (
+        "Total Time (init+duration, ms)" if invocation_type == "cold" else "Mean Duration (ms)"
+    )
+    ax.set_ylabel(y_label, fontsize=13, fontweight="bold")
+    subtitle = "(init+duration)" if invocation_type == "cold" else ""
+    ax.set_title(
+        f"Python Version Comparison: {format_workload_name(workload)} - {invocation_type.title()} Starts {subtitle}\n"
+        f"Solid lines = ARM64, Dashed lines = x86",
+        fontsize=15,
+        fontweight="bold",
+    )
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=10)
+    ax.grid(alpha=0.3, which="both", linestyle=":")
+    ax.set_xscale("log", base=2)
+
+    # Set custom tick labels
+    all_memory_values = sorted(
+        set(mem for series in series_data.values() for mem in series["memory"])
+    )
+    ax.set_xticks(all_memory_values)
+    ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
+
+    plt.tight_layout()
+    chart_path = output_dir / "charts" / workload / f"python-comparison-{invocation_type}.png"
+    chart_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(chart_path, dpi=CHART_DPI, bbox_inches="tight")
+    plt.close()
+
+
+def create_nodejs_comparison_chart(
+    aggregates: list[dict[str, Any]],
+    workload: str,
+    invocation_type: str,
+    output_dir: Path,
+) -> None:
+    """
+    Create comparison chart showing only Node.js runtimes.
+
+    Focused view comparing Node.js 20 vs 22 across ARM64 and x86 architectures.
+    """
+    # Filter for only Node.js runtimes
+    filtered = [
+        agg
+        for agg in filter_aggregates(
+            aggregates, workload_type=workload, invocation_type=invocation_type, only_successful=True
+        )
+        if agg["runtime"].startswith("nodejs")
+    ]
+
+    if not filtered:
+        return
+
+    # Group by runtime + architecture
+    series_data = defaultdict(lambda: {"memory": [], "duration": [], "p99": []})
+
+    for agg in filtered:
+        runtime = agg["runtime"]
+        arch = agg["architecture"]
+        memory_mb = agg["memorySizeMB"]
+
+        key = f"{runtime}-{arch}"
+
+        # Calculate total time (init + duration for cold, just duration for warm)
+        if invocation_type == "cold":
+            init_mean = agg["initDurationStats"]["mean"]
+            duration_mean = agg["durationStats"]["mean"]
+            total_time = init_mean + duration_mean
+        else:
+            total_time = agg["durationStats"]["mean"]
+
+        p99 = agg["durationStats"].get("p99", 0)
+
+        series_data[key]["memory"].append(memory_mb)
+        series_data[key]["duration"].append(total_time)
+        series_data[key]["p99"].append(p99)
+
+    # Sort memory values for each series
+    for key in series_data:
+        combined = list(
+            zip(
+                series_data[key]["memory"],
+                series_data[key]["duration"],
+                series_data[key]["p99"],
+                strict=False,
+            )
+        )
+        combined.sort(key=lambda x: x[0])
+        series_data[key]["memory"] = [x[0] for x in combined]
+        series_data[key]["duration"] = [x[1] for x in combined]
+        series_data[key]["p99"] = [x[2] for x in combined]
+
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    for key in sorted(series_data.keys()):
+        runtime = key.rsplit("-", 1)[0]
+        arch = key.rsplit("-", 1)[1]
+
+        color = RUNTIME_COLORS.get(runtime, "#000000")
+        linestyle = "-" if arch == "arm64" else "--"
+        marker = "o" if arch == "arm64" else "s"
+
+        ax.plot(
+            series_data[key]["memory"],
+            series_data[key]["duration"],
+            label=key,
+            color=color,
+            linestyle=linestyle,
+            marker=marker,
+            linewidth=2.5 if arch == "arm64" else 2,
+            markersize=7,
+            alpha=0.8,
+        )
+
+    ax.set_xlabel("Memory Configuration (MB)", fontsize=13, fontweight="bold")
+    y_label = (
+        "Total Time (init+duration, ms)" if invocation_type == "cold" else "Mean Duration (ms)"
+    )
+    ax.set_ylabel(y_label, fontsize=13, fontweight="bold")
+    subtitle = "(init+duration)" if invocation_type == "cold" else ""
+    ax.set_title(
+        f"Node.js Version Comparison: {format_workload_name(workload)} - {invocation_type.title()} Starts {subtitle}\n"
+        f"Solid lines = ARM64, Dashed lines = x86",
+        fontsize=15,
+        fontweight="bold",
+    )
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left", fontsize=10)
+    ax.grid(alpha=0.3, which="both", linestyle=":")
+    ax.set_xscale("log", base=2)
+
+    # Set custom tick labels
+    all_memory_values = sorted(
+        set(mem for series in series_data.values() for mem in series["memory"])
+    )
+    ax.set_xticks(all_memory_values)
+    ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
+
+    plt.tight_layout()
+    chart_path = output_dir / "charts" / workload / f"nodejs-comparison-{invocation_type}.png"
+    chart_path.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(chart_path, dpi=CHART_DPI, bbox_inches="tight")
+    plt.close()
+
+
 def create_p99_scaling_chart(
     aggregates: list[dict[str, Any]],
     workload: str,
@@ -1857,6 +2201,21 @@ def main() -> None:
     for workload in workloads:
         for invocation_type in ["cold", "warm"]:
             create_memory_scaling_chart(aggregates, workload, invocation_type, output_dir)
+
+    log.info("  - Node.js & Rust comparison charts (6 charts: focused view without Python)")
+    for workload in workloads:
+        for invocation_type in ["cold", "warm"]:
+            create_nodejs_rust_comparison_chart(aggregates, workload, invocation_type, output_dir)
+
+    log.info("  - Python version comparison charts (6 charts: all Python versions)")
+    for workload in workloads:
+        for invocation_type in ["cold", "warm"]:
+            create_python_comparison_chart(aggregates, workload, invocation_type, output_dir)
+
+    log.info("  - Node.js version comparison charts (6 charts: Node.js 20 vs 22)")
+    for workload in workloads:
+        for invocation_type in ["cold", "warm"]:
+            create_nodejs_comparison_chart(aggregates, workload, invocation_type, output_dir)
 
     log.info("  - P99 duration scaling charts (6 charts: cold and warm starts)")
     for workload in workloads:

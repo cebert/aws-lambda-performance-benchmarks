@@ -2,15 +2,15 @@
 
 ## Project Overview
 
-This project is a comprehensive performance benchmark comparing AWS Lambda ARM (Graviton2/3) vs x86 architectures across modern runtimes (Python 3.13/3.12/3.11, Node.js 22/20, Rust). It extends the [2023 AWS blog post](https://aws.amazon.com/blogs/apn/comparing-aws-lambda-arm-vs-x86-performance-cost-and-analysis-2/) with current runtime versions and best practices.
+This project is a comprehensive performance benchmark comparing AWS Lambda ARM (Graviton2/3) vs x86 architectures across modern runtimes (Python 3.14/3.13/3.12/3.11, Node.js 22/20, Rust). It extends the [2023 AWS blog post](https://aws.amazon.com/blogs/apn/comparing-aws-lambda-arm-vs-x86-performance-cost-and-analysis-2/) with current runtime versions and best practices.
 
 **Rust Support:** AWS officially announced Rust Lambda support on November 14, 2025. This benchmark uses the [`cargo-lambda-cdk`](https://github.com/cargo-lambda/cargo-lambda-cdk) construct library for deployment. See [AWS blog post](https://aws.amazon.com/blogs/compute/building-serverless-applications-with-rust-on-aws-lambda/) for details.
 
 **Key Innovation:** Forced cold start technique (memory toggling) dramatically reduces test execution time compared to waiting for natural cold starts.
 
 **Infrastructure:**
-- 36 Lambda functions (6 runtimes × 2 architectures × 3 workloads)
-  - Python: 3.13, 3.12, 3.11
+- 42 Lambda functions (7 runtimes × 2 architectures × 3 workloads)
+  - Python: 3.14, 3.13, 3.12, 3.11
   - Node.js: 22, 20
   - Rust: provided.al2023 runtime with cargo-lambda
 - DynamoDB tables for results storage and test data (with TTL)

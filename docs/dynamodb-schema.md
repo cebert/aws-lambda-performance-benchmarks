@@ -50,7 +50,7 @@ All entities share one table:
 
 Every item includes:
 
-- `itemType ∈ {"result","aggregate","test-run"}` – required entity type declaration
+- `itemType {"result","aggregate","test-run"}` – required entity type declaration
 - `testRunId` – UUID that ties all data for a run together
 
 ### Primary Key (Base Table)

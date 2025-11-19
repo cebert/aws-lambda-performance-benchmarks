@@ -44,13 +44,44 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-BOTO_CONFIG = Config(
-    region_name=os.environ.get("AWS_REGION", "us-east-2"),  # Support EC2 execution and local
-    retries={"max_attempts": 10, "mode": "standard"},
-    max_pool_connections=50,  # High limit for parallel execution (up to 12 workers)
-    read_timeout=250,  # Must exceed Lambda timeout (240s) to handle slow executions at low memory
-    connect_timeout=20,
-)
+
+def get_aws_region() -> str:
+    """
+    Get AWS region from multiple sources with fallback.
+
+    Checks (in order):
+    1. AWS_REGION environment variable (set by EC2 user data)
+    2. AWS_DEFAULT_REGION environment variable
+    3. boto3 session region
+    4. Fallback to us-east-2
+
+    Returns:
+        AWS region name
+    """
+    region = (
+        os.environ.get("AWS_REGION")
+        or os.environ.get("AWS_DEFAULT_REGION")
+        or boto3.session.Session().region_name
+        or "us-east-2"
+    )
+    return region
+
+
+def get_boto_config() -> Config:
+    """
+    Get boto3 Config with region dynamically resolved.
+
+    Returns:
+        boto3 Config object with region and retry settings
+    """
+    return Config(
+        region_name=get_aws_region(),
+        retries={"max_attempts": 10, "mode": "standard"},
+        max_pool_connections=50,  # High limit for parallel execution (up to 12 workers)
+        read_timeout=250,  # Must exceed Lambda timeout (240s) to handle slow executions at low memory
+        connect_timeout=20,
+    )
+
 
 # Thread-local storage for boto3 clients (thread-safe for parallel execution)
 thread_local = threading.local()
@@ -59,27 +90,26 @@ thread_local = threading.local()
 def get_lambda_client():
     """Get thread-local Lambda client for thread-safe parallel execution."""
     if not hasattr(thread_local, "lambda_client"):
-        thread_local.lambda_client = boto3.client("lambda", config=BOTO_CONFIG)
+        thread_local.lambda_client = boto3.client("lambda", config=get_boto_config())
     return thread_local.lambda_client
 
 
 def get_dynamodb_resource():
     """Get thread-local DynamoDB resource for thread-safe parallel execution."""
     if not hasattr(thread_local, "dynamodb"):
-        thread_local.dynamodb = boto3.resource("dynamodb", config=BOTO_CONFIG)
+        thread_local.dynamodb = boto3.resource("dynamodb", config=get_boto_config())
     return thread_local.dynamodb
 
 
 def get_cloudformation_client():
     """Get thread-local CloudFormation client for thread-safe parallel execution."""
     if not hasattr(thread_local, "cfn_client"):
-        thread_local.cfn_client = boto3.client("cloudformation", config=BOTO_CONFIG)
+        thread_local.cfn_client = boto3.client("cloudformation", config=get_boto_config())
     return thread_local.cfn_client
 
 
-AWS_REGION = (
-    boto3.session.Session().region_name or "us-east-2"
-)  # Changed from us-east-1 to match project default
+# Constants
+AWS_REGION = get_aws_region()  # Get region using robust fallback logic
 STACK_NAME = "LambdaBenchmarkStack"
 
 # =============================================================================
@@ -286,6 +316,23 @@ def get_deployed_functions(name_filter: str | None = None) -> list[dict[str, str
     configuration details for each. This approach avoids creating CloudFormation outputs.
     """
     log.info(f"Discovering functions from stack: {STACK_NAME}")
+
+    # Log credential source for debugging
+    try:
+        sts_client = boto3.client("sts", config=get_boto_config())
+        identity = sts_client.get_caller_identity()
+        arn = identity["Arn"]
+        # Extract role name from ARN if it's a role
+        if ":assumed-role/" in arn:
+            role_name = arn.split(":assumed-role/")[1].split("/")[0]
+            log.info(f"Using credentials from IAM Role: {role_name}")
+        elif ":user/" in arn:
+            user_name = arn.split(":user/")[1]
+            log.info(f"Using credentials from IAM User: {user_name}")
+        else:
+            log.info(f"Using credentials: {arn}")
+    except Exception as e:
+        log.warning(f"Could not determine credential source: {e}")
 
     cfn_client = get_cloudformation_client()
     lambda_client = get_lambda_client()
@@ -757,6 +804,7 @@ def run_benchmark(
     log.info("Lambda ARM vs x86 Benchmark Orchestrator")
     log.info("=" * 70)
     log.info(f"Test Run ID: {test_run_id}")
+    log.info(f"AWS Region: {get_aws_region()}")
     log.info(f"Cold starts per config: {config.cold_starts_per_config}")
     log.info(f"Warm starts per config: {config.warm_starts_per_config}")
     log.info(f"Memory configs: {config.memory_configs_to_test or 'ALL'}")

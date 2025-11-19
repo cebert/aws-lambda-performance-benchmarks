@@ -6,8 +6,8 @@ This benchmark reimplements similar **single-threaded workloads** in **Node.js, 
 
 ## Supported Runtimes
 
-- **Python:** 3.13, 3.12, 3.11  
-- **Node.js:** 22, 20  
+- **Python:** 3.14, 3.13, 3.12, 3.11
+- **Node.js:** 22, 20
 - **Rust:** Custom runtime on al2023 (Amazon Linux 2023) + `rustc 1.91.0`
 
 ## Workloads
@@ -24,11 +24,11 @@ See [docs/benchmark-design.md](./docs/benchmark-design.md) for full details.
 
 - **Light (I/O)**
   - Writes 5 items to DynamoDB in a batch, then reads 5 items in a batch.
-  - Uses the AWS SDK and represents a realistic, light “business logic + I/O” workload.
+  - Uses the AWS SDK and represents a realistic, light "business logic + I/O" workload.
 
 **Test Matrix:**
 
-- 6 runtimes × 2 architectures (ARM64/x86_64) × 3 workloads = 36 Lambda functions
+- 7 runtimes × 2 architectures (ARM64/x86_64) × 3 workloads = 42 Lambda functions
 - 3 workload types: CPU-intensive (SHA-256 hashing), Memory-intensive (array sorting), Light (DynamoDB I/O)
 - Multiple memory configurations (128 MB to 10240 MB)
 - Cold start vs warm start measurements

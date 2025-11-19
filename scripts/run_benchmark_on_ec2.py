@@ -111,6 +111,7 @@ def create_iam_role(iam_client, region: str, account_id: str) -> str:
                     "dynamodb:GetItem",
                     "dynamodb:Query",
                     "dynamodb:BatchWriteItem",
+                    "dynamodb:UpdateItem",
                 ],
                 "Resource": f"arn:aws:dynamodb:{region}:{account_id}:table/Benchmark*",
             },
@@ -283,8 +284,10 @@ cd aws-lambda-performance-benchmarks
 echo "Installing Python dependencies..."
 /root/.local/bin/uv sync --all-extras
 
-# Set region
+# Set region (both variables for maximum compatibility)
 export AWS_REGION={region}
+export AWS_DEFAULT_REGION={region}
+echo "AWS Region configured: {region}"
 
 # Run benchmark
 echo "Starting benchmark in {mode} mode..."

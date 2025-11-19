@@ -14,7 +14,7 @@ This design extends the 2023 AWS blog work to current runtimes and operating sys
 
 The following dimensions are tested in this benchmark:
 - runtime (Python, Node.js, and Rust across current AWS-supported versions)
-  - Python: 3.13, 3.12, 3.11
+  - Python: 3.14, 3.13, 3.12, 3.11
   - Node.js: 22, 20
   - Rust: provided.al2023 (officially supported as of [Nov 14, 2025](https://aws.amazon.com/blogs/compute/building-serverless-applications-with-rust-on-aws-lambda/))
 - ARM64 and x86_64 CPU architectures

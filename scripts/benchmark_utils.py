@@ -64,12 +64,13 @@ FAMILY_COLORS = {
 
 # Individual runtime colors for charts
 RUNTIME_COLORS = {
+    "python3.14": "#e377c2",  # Magenta/Pink
     "python3.13": "#1f77b4",  # Blue
     "python3.12": "#2ca02c",  # Green
-    "python3.11": "#d62728",  # Red
+    "python3.11": "#17becf",  # Cyan/Teal
     "nodejs22": "#ff7f0e",  # Orange
     "nodejs20": "#9467bd",  # Purple
-    "rust": "#ce422b",  # Orange-red (matches FAMILY_COLORS)
+    "rust": "#d62728",  # Red (distinct from orange/teal)
 }
 
 # =============================================================================

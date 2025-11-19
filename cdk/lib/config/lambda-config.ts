@@ -50,6 +50,12 @@ export interface LambdaFunctionConfig {
  */
 export const PYTHON_RUNTIMES: RuntimeConfig[] = [
   {
+    id: 'python3.14',
+    runtime: Runtime.PYTHON_3_14,
+    handler: 'handler.lambda_handler',
+    codePath: '../lambdas/python',
+  },
+  {
     id: 'python3.13',
     runtime: Runtime.PYTHON_3_13,
     handler: 'handler.lambda_handler',
