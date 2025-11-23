@@ -16,6 +16,7 @@ Usage:
 
 import argparse
 import logging
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime
@@ -47,6 +48,87 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 dynamodb = boto3.client("dynamodb")
+
+# =============================================================================
+# Runtime Sorting Utilities
+# =============================================================================
+
+
+def extract_runtime_sort_key(runtime: str) -> tuple[str, float]:
+    """
+    Extract sort key from runtime string for newest-to-oldest ordering.
+
+    Returns tuple of (language, -version) where version is negated for reverse sort.
+
+    Examples:
+        python3.14 -> ('python', -3.14)
+        python3.13 -> ('python', -3.13)
+        nodejs22 -> ('nodejs', -22.0)
+        nodejs20 -> ('nodejs', -20.0)
+        rust -> ('rust', 0.0)
+
+    Args:
+        runtime: Runtime string (e.g., 'python3.14', 'nodejs22', 'rust')
+
+    Returns:
+        Tuple of (language_name, negated_version) for sorting
+    """
+    # Match patterns like python3.14, python3.13, nodejs22, nodejs20
+    match = re.match(r'^([a-z]+)(\d+(?:\.\d+)?)$', runtime.lower())
+
+    if match:
+        language = match.group(1)
+        version = float(match.group(2))
+        # Negate version to sort newest first (higher versions first)
+        return (language, -version)
+
+    # For runtimes without version (like 'rust'), use 0
+    return (runtime.lower(), 0.0)
+
+
+def sort_runtimes_newest_first(runtimes: list[str]) -> list[str]:
+    """
+    Sort runtimes from newest to oldest version.
+
+    Within each language family, sorts by version descending.
+    Language families are sorted alphabetically.
+
+    Examples:
+        ['python3.11', 'python3.14', 'nodejs20', 'nodejs22', 'rust']
+        -> ['nodejs22', 'nodejs20', 'python3.14', 'python3.13', 'python3.12', 'python3.11', 'rust']
+
+    Args:
+        runtimes: List of runtime strings
+
+    Returns:
+        Sorted list with newest versions first within each language family
+    """
+    return sorted(runtimes, key=extract_runtime_sort_key)
+
+
+def sort_runtime_keys_newest_first(keys: list[str]) -> list[str]:
+    """
+    Sort runtime-architecture keys (e.g., 'python3.14-arm64') by runtime newest first.
+
+    Extracts runtime from key, sorts by newest first, then by architecture (arm64 before x86).
+
+    Args:
+        keys: List of runtime-architecture keys
+
+    Returns:
+        Sorted list with newest runtimes first, arm64 before x86 within each runtime
+    """
+    def key_sort_func(key: str) -> tuple[str, float, str]:
+        parts = key.rsplit('-', 1)
+        if len(parts) == 2:
+            runtime, arch = parts
+            lang, neg_version = extract_runtime_sort_key(runtime)
+            # Sort arm64 before x86 (a comes before x)
+            return (lang, neg_version, arch)
+        return ('zzz', 0.0, key)  # Fallback for unexpected format
+
+    return sorted(keys, key=key_sort_func)
+
 
 # =============================================================================
 # Chart Styling Configuration
@@ -176,7 +258,7 @@ def parse_stats_map(item: dict[str, Any], preferred: str, fallback: str) -> dict
     if not key or key not in item:
         return {}
 
-    stats_map = {k: v for k, v in item[key]["M"].items()}
+    stats_map = dict(item[key]["M"].items())
     return decimal_to_float({k: parse_stats_value(v) for k, v in stats_map.items()})
 
 
@@ -361,7 +443,7 @@ def generate_summary_markdown(
         f.write("## Summary Statistics\n\n")
         f.write(f"- **Total Aggregates**: {len(aggregates)}\n")
 
-        runtimes = sorted({a["runtime"] for a in aggregates})
+        runtimes = sort_runtimes_newest_first(list({a["runtime"] for a in aggregates}))
         workloads = sorted({a["workloadType"] for a in aggregates})
         architectures = sorted({a["architecture"] for a in aggregates})
 
@@ -430,7 +512,7 @@ def generate_comparison_table(
     with open(table_path, "w") as f:
         f.write(f"# {format_workload_name(workload)} Starts\n\n")
 
-        for runtime in sorted(data.keys()):
+        for runtime in sort_runtimes_newest_first(list(data.keys())):
             f.write(f"## {runtime}\n\n")
 
             # Table header with performance columns including init time
@@ -632,7 +714,7 @@ def create_memory_scaling_chart(
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    for key in sorted(series_data.keys()):
+    for key in sort_runtime_keys_newest_first(list(series_data.keys())):
         runtime = key.rsplit("-", 1)[0]
         arch = key.rsplit("-", 1)[1]
 
@@ -670,7 +752,7 @@ def create_memory_scaling_chart(
 
     # Set custom tick labels to show actual MB values instead of powers of 2
     all_memory_values = sorted(
-        set(mem for series in series_data.values() for mem in series["memory"])
+        {mem for series in series_data.values() for mem in series["memory"]}
     )
     ax.set_xticks(all_memory_values)
     ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
@@ -749,7 +831,7 @@ def create_nodejs_rust_comparison_chart(
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    for key in sorted(series_data.keys()):
+    for key in sort_runtime_keys_newest_first(list(series_data.keys())):
         runtime = key.rsplit("-", 1)[0]
         arch = key.rsplit("-", 1)[1]
 
@@ -787,7 +869,7 @@ def create_nodejs_rust_comparison_chart(
 
     # Set custom tick labels
     all_memory_values = sorted(
-        set(mem for series in series_data.values() for mem in series["memory"])
+        {mem for series in series_data.values() for mem in series["memory"]}
     )
     ax.set_xticks(all_memory_values)
     ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
@@ -864,7 +946,7 @@ def create_python_comparison_chart(
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    for key in sorted(series_data.keys()):
+    for key in sort_runtime_keys_newest_first(list(series_data.keys())):
         runtime = key.rsplit("-", 1)[0]
         arch = key.rsplit("-", 1)[1]
 
@@ -902,7 +984,7 @@ def create_python_comparison_chart(
 
     # Set custom tick labels
     all_memory_values = sorted(
-        set(mem for series in series_data.values() for mem in series["memory"])
+        {mem for series in series_data.values() for mem in series["memory"]}
     )
     ax.set_xticks(all_memory_values)
     ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
@@ -978,7 +1060,7 @@ def create_nodejs_comparison_chart(
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    for key in sorted(series_data.keys()):
+    for key in sort_runtime_keys_newest_first(list(series_data.keys())):
         runtime = key.rsplit("-", 1)[0]
         arch = key.rsplit("-", 1)[1]
 
@@ -1016,7 +1098,7 @@ def create_nodejs_comparison_chart(
 
     # Set custom tick labels
     all_memory_values = sorted(
-        set(mem for series in series_data.values() for mem in series["memory"])
+        {mem for series in series_data.values() for mem in series["memory"]}
     )
     ax.set_xticks(all_memory_values)
     ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
@@ -1069,7 +1151,7 @@ def create_p99_scaling_chart(
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    for key in sorted(series_data.keys()):
+    for key in sort_runtime_keys_newest_first(list(series_data.keys())):
         runtime = key.rsplit("-", 1)[0]
         arch = key.rsplit("-", 1)[1]
 
@@ -1107,7 +1189,7 @@ def create_p99_scaling_chart(
 
     # Set custom tick labels to show actual MB values instead of powers of 2
     all_memory_values = sorted(
-        set(mem for series in series_data.values() for mem in series["memory"])
+        {mem for series in series_data.values() for mem in series["memory"]}
     )
     ax.set_xticks(all_memory_values)
     ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
@@ -1163,7 +1245,7 @@ def create_cost_effectiveness_chart(
 
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    for key in sorted(series_data.keys()):
+    for key in sort_runtime_keys_newest_first(list(series_data.keys())):
         runtime = key.rsplit("-", 1)[0]
         arch = key.rsplit("-", 1)[1]
 
@@ -1197,7 +1279,7 @@ def create_cost_effectiveness_chart(
 
     # Set custom tick labels to show actual MB values instead of powers of 2
     all_memory_values = sorted(
-        set(mem for series in series_data.values() for mem in series["memory"])
+        {mem for series in series_data.values() for mem in series["memory"]}
     )
     ax.set_xticks(all_memory_values)
     ax.set_xticklabels([f"{int(m)}" for m in all_memory_values])
@@ -1253,8 +1335,8 @@ def create_runtime_family_p99_chart(
     chart_data = defaultdict(lambda: {"arm64": [], "x86": [], "labels": []})
 
     for family in sorted(family_data.keys()):
-        for runtime in sorted(
-            set(list(family_data[family]["arm64"].keys()) + list(family_data[family]["x86"].keys()))
+        for runtime in sort_runtimes_newest_first(
+            list(set(list(family_data[family]["arm64"].keys()) + list(family_data[family]["x86"].keys())))
         ):
             chart_data[family]["labels"].append(runtime)
 
@@ -1390,7 +1472,7 @@ def create_architecture_comparison_chart(
         return
 
     # Group by runtime
-    runtimes = sorted({a["runtime"] for a in filtered})
+    runtimes = sort_runtimes_newest_first(list({a["runtime"] for a in filtered}))
 
     # Calculate average improvements
     improvements = []
@@ -1470,7 +1552,7 @@ def create_runtime_comparison_chart(
 
     # Group by workload and runtime
     workloads = sorted({a["workloadType"] for a in filtered})
-    runtimes = sorted({a["runtime"] for a in filtered})
+    runtimes = sort_runtimes_newest_first(list({a["runtime"] for a in filtered}))
 
     # Calculate average duration for each runtime/workload combo
     data = defaultdict(list)
@@ -1488,10 +1570,9 @@ def create_runtime_comparison_chart(
     fig, ax = plt.subplots(figsize=(12, 6))
     x = range(len(runtimes))
     width = BAR_WIDTH_NARROW
-    multiplier = 0
 
     colors = ["#007bff", "#ffc107", "#dc3545"]
-    for workload, values in data.items():
+    for multiplier, (workload, values) in enumerate(data.items()):
         offset = width * multiplier
         bars = ax.bar(
             [i + offset for i in x],
@@ -1515,8 +1596,6 @@ def create_runtime_comparison_chart(
                     va="bottom",
                     fontsize=8,
                 )
-
-        multiplier += 1
 
     ax.set_xlabel("Runtime", fontsize=12, fontweight="bold")
     ax.set_ylabel("Average Duration (ms)", fontsize=12, fontweight="bold")
@@ -1556,7 +1635,7 @@ def create_cold_start_analysis_chart(aggregates: list[dict[str, Any]], output_di
             data[runtime][arch].append(init_mean)
 
     # Calculate averages
-    runtimes = sorted(data.keys())
+    runtimes = sort_runtimes_newest_first(list(data.keys()))
     arm64_inits = []
     x86_inits = []
 
@@ -1803,7 +1882,7 @@ def create_cost_savings_heatmap(
     import numpy as np
 
     # Organize data: runtime x memory
-    runtimes = sorted({a["runtime"] for a in filtered})
+    runtimes = sort_runtimes_newest_first(list({a["runtime"] for a in filtered}))
     memories = sorted({a["memorySizeMB"] for a in filtered})
 
     # Create matrix: rows=runtimes, cols=memories, values=% savings
@@ -1909,7 +1988,7 @@ def create_memory_scaling_efficiency_chart(
     fig, ax = plt.subplots(figsize=(14, 8))
 
     # Process each runtime/arch combo
-    for runtime in sorted({a["runtime"] for a in filtered}):
+    for runtime in sort_runtimes_newest_first(list({a["runtime"] for a in filtered})):
         for arch in ["arm64", "x86"]:
             combo_data = filter_aggregates(filtered, runtime=runtime, architecture=arch)
             if not combo_data:
@@ -2066,7 +2145,7 @@ def create_performance_consistency_chart(
     fig, ax = plt.subplots(figsize=(14, 8))
 
     # Process each runtime/arch combo
-    for runtime in sorted({a["runtime"] for a in filtered}):
+    for runtime in sort_runtimes_newest_first(list({a["runtime"] for a in filtered})):
         for arch in ["arm64", "x86"]:
             combo_data = filter_aggregates(filtered, runtime=runtime, architecture=arch)
             if not combo_data:
