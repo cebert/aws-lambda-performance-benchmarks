@@ -121,13 +121,12 @@ LAMBDA_MEMORY_MIN_MB = 128  # AWS Lambda minimum memory
 LAMBDA_MEMORY_MAX_MB = 10240  # AWS Lambda maximum memory
 LAMBDA_MEMORY_TOGGLE_MB = 64  # Memory change for forced cold start toggle
 
-# Timing Configuration
 COLD_START_STABILIZATION_DELAY_SECONDS = (
-    0.05  # Wait time after config update for Lambda environment teardown
+    0.05
 )
 
 # Retry Configuration
-LAMBDA_INVOKE_MAX_RETRIES = 3  # Max retry attempts for throttled invocations
+LAMBDA_INVOKE_MAX_RETRIES = 3
 LAMBDA_INVOKE_BACKOFF_BASE_SECONDS = 1  # Base for exponential backoff (1s, 2s, 4s)
 
 
@@ -291,12 +290,12 @@ def parse_cloudwatch_report(log_result: str) -> dict[str, Any]:
     return result
 
 
-def build_workload_payload(workload_type: str, memory_mb: int) -> dict:
+def build_workload_payload(workload_type: str, _memory_mb: int) -> dict:
     """
     Build invocation payload based on workload type.
 
     Note: memory-intensive workload uses fixed 100 MB array (hardcoded in handlers),
-    so no payload needed. Keeping function signature for consistency.
+    so no payload needed. The _memory_mb parameter is kept for API consistency but unused.
     """
     if workload_type == "cpu-intensive":
         return {"iterations": CPU_INTENSIVE_ITERATIONS}
@@ -418,23 +417,19 @@ def get_memory_configs_for_workload(workload_type: str, config: BenchmarkConfig)
 def force_cold_start(function_name: str, memory_mb: int) -> None:
     """
     Force a cold start by updating Lambda function configuration.
-
-    Uses the "toggle technique" to force Lambda to tear down the execution environment.
-    Reduces test time from 60-120 hours to ~10 hours by avoiding 15+ minute waits.
     """
     lambda_client = get_lambda_client()
     current_config = lambda_client.get_function_configuration(FunctionName=function_name)
     current_memory = current_config["MemorySize"]
 
     if current_memory == memory_mb:
-        # Toggle memory to force cold start (Lambda tears down environment on config change)
         if memory_mb >= LAMBDA_MEMORY_MAX_MB:
-            temp_memory = memory_mb - LAMBDA_MEMORY_TOGGLE_MB  # Decrement from max
+            temp_memory = memory_mb - LAMBDA_MEMORY_TOGGLE_MB
         else:
-            temp_memory = memory_mb + LAMBDA_MEMORY_TOGGLE_MB  # Normal toggle
+            temp_memory = memory_mb + LAMBDA_MEMORY_TOGGLE_MB
         temp_memory = max(
             LAMBDA_MEMORY_MIN_MB, min(LAMBDA_MEMORY_MAX_MB, temp_memory)
-        )  # Safety clamp
+        )
 
         lambda_client.update_function_configuration(
             FunctionName=function_name, MemorySize=temp_memory
@@ -444,11 +439,8 @@ def force_cold_start(function_name: str, memory_mb: int) -> None:
         waiter.wait(FunctionName=function_name)
         time.sleep(COLD_START_STABILIZATION_DELAY_SECONDS)
 
+    # Set final target memory - no need to wait, Lambda will queue invocations
     lambda_client.update_function_configuration(FunctionName=function_name, MemorySize=memory_mb)
-
-    waiter = lambda_client.get_waiter("function_updated")
-    waiter.wait(FunctionName=function_name)
-    time.sleep(COLD_START_STABILIZATION_DELAY_SECONDS)
 
 
 # =============================================================================

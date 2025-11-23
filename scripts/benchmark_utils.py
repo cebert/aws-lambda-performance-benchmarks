@@ -150,7 +150,8 @@ def map_decimal(d: dict[str, float | int | bool]) -> dict[str, Any]:
     """
     result = {}
     for k, v in d.items():
-        if isinstance(v, bool) or isinstance(v, int):  # Check bool FIRST (bool is subclass of int!)
+        # Note: bool is subclass of int, but both are preserved as-is
+        if isinstance(v, (bool, int)):
             result[k] = v
         elif isinstance(v, (float,)):
             result[k] = Decimal(str(v))
