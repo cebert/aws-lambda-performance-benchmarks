@@ -52,7 +52,7 @@ Parsing should be tolerant to minor formatting differences across runtimes.
 
 ## Implementation references
 
-- AJ Stuyvenberg cold start benchmark: https://github.com/astuyve/cold-start-benchmarker
+- [AJ Stuyvenberg cold start benchmarker](https://github.com/astuyve/cold-start-benchmarker)
 - [benchmark-design.md](./benchmark-design.md)
 - [dynamodb-schema.md](./dynamodb-schema.md)
 - [handler-api-spec.md](./handler-api-spec.md)
