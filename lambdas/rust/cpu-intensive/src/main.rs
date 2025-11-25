@@ -67,16 +67,23 @@ async fn function_handler(event: LambdaEvent<Request>) -> Result<Response, Error
 /// - Start with same benchmark string
 /// - Chain hash output as next input
 /// - No extra work (no iteration counter)
+///
+/// Optimized to:
+/// - Reuse hasher via Digest::reset() instead of allocating new one each iteration
+/// - Use fixed-size array [u8; 32] instead of Vec allocation each iteration
 fn cpu_intensive_workload(iterations: u32) -> String {
-    let mut data = b"benchmark data for Lambda ARM vs x86 performance testing".to_vec();
+    // First iteration: hash the seed string
+    let mut hasher = Sha256::new();
+    hasher.update(b"benchmark data for Lambda ARM vs x86 performance testing");
+    let mut hash: [u8; 32] = hasher.finalize_reset().into();
 
-    for _ in 0..iterations {
-        let mut hasher = Sha256::new();
-        hasher.update(&data);
-        data = hasher.finalize().to_vec();
+    // Remaining iterations: chain hashes, reusing the hasher
+    for _ in 1..iterations {
+        hasher.update(&hash);
+        hash = hasher.finalize_reset().into();
     }
 
-    hex::encode(data)
+    hex::encode(hash)
 }
 
 #[tokio::main]
