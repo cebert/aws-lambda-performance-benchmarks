@@ -150,9 +150,9 @@ export const WORKLOADS: WorkloadConfig[] = [
 ];
 
 /**
- * Generate all 36 Lambda function configurations
- * (6 runtimes × 2 architectures × 3 workloads = 36 functions)
- * Runtimes: Python 3.13/3.12/3.11, Node.js 22/20, Rust
+ * Generate all 42 Lambda function configurations
+ * (7 runtimes × 2 architectures × 3 workloads = 42 functions)
+ * Runtimes: Python 3.14/3.13/3.12/3.11, Node.js 22/20, Rust
  */
 export function generateLambdaConfigurations(): LambdaFunctionConfig[] {
   const configurations: LambdaFunctionConfig[] = [];

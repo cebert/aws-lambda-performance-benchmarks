@@ -61,7 +61,7 @@ For analysis and insights, see the accompanying blog post: [Comparing AWS Lambda
 - Node.js 18+
 - Python 3.11+ (via `uv` - recommended)
 - AWS CDK CLI: `npm install -g aws-cdk`
-- UV package manager: https://docs.astral.sh/uv/getting-started/installation/
+- [UV package manager](https://docs.astral.sh/uv/getting-started/installation/)
 - For Rust handlers: cargo-lambda or Docker (automatic via CDK)
   
 
@@ -79,7 +79,7 @@ npm  install && npm  run  build
 npm  run  deploy
 ```
 
-Deploys 36 Lambda functions, 2 DynamoDB tables, and supporting infrastructure to `us-east-2` (configurable via `AWS_REGION`).
+Deploys 42 Lambda functions, 2 DynamoDB tables, and supporting infrastructure to `us-east-2` (configurable via `AWS_REGION`).
 
 ### Cleanup
 
@@ -109,7 +109,7 @@ uv  run  python  scripts/benchmark_orchestrator.py  --balanced
 uv  run  python  scripts/benchmark_orchestrator.py  --production
 ```
 
-Each mode tests all 36 functions across multiple memory configurations. Higher modes provide better statistical confidence.
+Each mode tests all 42 functions across multiple memory configurations. Higher modes provide better statistical confidence.
 
 ### Running Long Benchmarks (Balanced/Production Mode)
 
@@ -211,11 +211,11 @@ This is a research benchmark project. Feel free to fork it, or if you find issue
 
 ## Credits & References
 
--  **2023 AWS blog benchmark:** https://aws.amazon.com/blogs/apn/comparing-aws-lambda-arm-vs-x86-performance-cost-and-analysis-2/
--  **Forced cold start technique:** AJ Stuyvenberg - https://github.com/astuyve/cold-start-benchmarker
+-  **2023 AWS blog benchmark:** [Comparing AWS Lambda Arm vs. x86 Performance, Cost, and Analysis](https://aws.amazon.com/blogs/apn/comparing-aws-lambda-arm-vs-x86-performance-cost-and-analysis-2/)
+-  **Forced cold start technique:** [AJ Stuyvenberg's cold-start-benchmarker](https://github.com/astuyve/cold-start-benchmarker)
    - This approach helps us test cold start invocations much faster than having to re-deploy Lambdas or wait for all instances to become cold.
--  **Rust Lambda support:** https://aws.amazon.com/blogs/compute/building-serverless-applications-with-rust-on-aws-lambda/
--  **cargo-lambda-cdk:** https://github.com/cargo-lambda/cargo-lambda-cdk
+-  **Rust Lambda support:** [Building serverless applications with Rust on AWS Lambda](https://aws.amazon.com/blogs/compute/building-serverless-applications-with-rust-on-aws-lambda/)
+-  **cargo-lambda-cdk:** [cargo-lambda/cargo-lambda-cdk](https://github.com/cargo-lambda/cargo-lambda-cdk)
 
 ## Development Tools
 
