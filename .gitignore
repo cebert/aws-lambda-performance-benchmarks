@@ -65,6 +65,11 @@ htmlcov/
 *.svg
 results/
 
+# Allow published results (charts and images)
+!published-results/
+!published-results/**/*.png
+!published-results/**/*.svg
+
 # ============================================================================
 # Caches
 # ============================================================================

@@ -42,7 +42,17 @@ See [docs/benchmark-design.md](./docs/benchmark-design.md) for full details.
 
 📖 Full design documentation in [/docs](./docs)
 
- 
+## Published Results
+
+Pre-computed benchmark results are available in the [published-results](./published-results) folder:
+
+- **[November 2025](./published-results/november-2025/)** - Production run with 183,750 invocations (125 cold + 500 warm per config)
+  - 7 runtimes (Python 3.11-3.14, Node.js 20/22, Rust)
+  - ARM64 vs x86_64 comparisons
+  - Memory scaling from 128 MB to 10,240 MB
+
+For analysis and insights, see the accompanying blog post: [Comparing AWS Lambda ARM64 vs x86_64 Performance Across Multiple Runtimes in Late 2025](https://chrisebert.net/comparing-aws-lambda-arm64-vs-x86_64-performance-across-multiple-runtimes-in-late-2025/)
+
 ## Quick Start
 
 ### Prerequisites
@@ -206,3 +216,7 @@ This is a research benchmark project. Feel free to fork it, or if you find issue
    - This approach helps us test cold start invocations much faster than having to re-deploy Lambdas or wait for all instances to become cold.
 -  **Rust Lambda support:** https://aws.amazon.com/blogs/compute/building-serverless-applications-with-rust-on-aws-lambda/
 -  **cargo-lambda-cdk:** https://github.com/cargo-lambda/cargo-lambda-cdk
+
+## Development Tools
+
+This project was built with assistance from [Claude Code](https://claude.com/claude-code), Anthropic's AI coding assistant. While Claude Code helped accelerate development, all design decisions, code review, and testing were performed by the author.
