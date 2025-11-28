@@ -158,8 +158,8 @@ BALANCED_CONFIG = BenchmarkConfig(
 )
 
 PRODUCTION_CONFIG = BenchmarkConfig(
-    cold_starts_per_config=125,
-    warm_starts_per_config=500,
+    cold_starts_per_config=20,
+    warm_starts_per_config=300,
     memory_configs_to_test=None,  # Use per-workload MEMORY_CONFIGS from benchmark_utils
 )
 
