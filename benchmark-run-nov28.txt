@@ -1,0 +1,53 @@
+AWS Lambda Performance Benchmark Run - November 28, 2025
+=========================================================
+
+Test Run ID: 265fcb2a-905c-485c-9c33-87cbcc969dee
+EC2 Instance ID: i-0edc37dce9d60f130
+Started: 2025-11-28 19:45:58 UTC (14:45 EST)
+Region: us-east-2
+Mode: production
+
+PARAMETERS:
+-----------
+Cold starts per config: 20
+Warm starts per config: 300
+Total configurations: 294
+Expected total results: 294 × 320 = 94,080
+
+TEST MATRIX:
+------------
+Runtimes: nodejs20, nodejs22, python3.11, python3.12, python3.13, python3.14, rust
+Architectures: arm64, x86
+Workload Types: cpu-intensive, light, memory-intensive
+
+Memory Configurations:
+- cpu-intensive: 128, 256, 512, 1024, 1769, 2048 MB (6 sizes)
+- light: 128, 256, 512, 1024, 1769, 2048 MB (6 sizes)
+- memory-intensive: 128, 256, 512, 1024, 1769, 2048, 4096, 8192, 10240 MB (9 sizes)
+
+MONITORING COMMANDS:
+--------------------
+# Check progress count:
+aws dynamodb scan --table-name BenchmarkResults --region us-east-2 --select COUNT --query 'Count'
+
+# Check EC2 status:
+aws ec2 describe-instances --instance-ids i-0edc37dce9d60f130 --region us-east-2 --query 'Reservations[0].Instances[0].State.Name'
+
+# Get test run status:
+aws dynamodb get-item --table-name BenchmarkResults --region us-east-2 \
+  --key '{"pk":{"S":"TESTRUN#265fcb2a-905c-485c-9c33-87cbcc969dee"},"sk":{"S":"TESTRUN#265fcb2a-905c-485c-9c33-87cbcc969dee"}}' \
+  --projection-expression "#s" --expression-attribute-names '{"#s":"status"}'
+
+ESTIMATED DURATION:
+-------------------
+With reduced iterations (20 cold + 300 warm vs 125 cold + 500 warm):
+- Previous full run took ~72 hours with 183,750 results
+- This run has 94,080 results (~51% of previous)
+- Estimated: ~12-18 hours
+- Expected completion: ~November 29, 2025 morning
+
+NOTES:
+------
+- Config changed from 125 cold/500 warm to 20 cold/300 warm
+- Cold starts are time-intensive and less analytically interesting
+- Commit 18799fc pushed these changes before this run

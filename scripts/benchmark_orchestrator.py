@@ -414,6 +414,32 @@ def get_memory_configs_for_workload(workload_type: str, config: BenchmarkConfig)
 # =============================================================================
 
 
+def _update_function_memory_with_retry(
+    function_name: str, memory_mb: int, max_retries: int = 5
+) -> None:
+    """Update Lambda memory with retry on ResourceConflictException."""
+    lambda_client = get_lambda_client()
+
+    for attempt in range(max_retries):
+        try:
+            lambda_client.update_function_configuration(
+                FunctionName=function_name, MemorySize=memory_mb
+            )
+            waiter = lambda_client.get_waiter("function_updated")
+            waiter.wait(FunctionName=function_name)
+            return
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ResourceConflictException" and attempt < max_retries - 1:
+                backoff = 2 ** attempt  # 1, 2, 4, 8, 16 seconds
+                log.warning(
+                    f"ResourceConflictException on {function_name}, retrying in {backoff}s "
+                    f"(attempt {attempt + 1}/{max_retries})"
+                )
+                time.sleep(backoff)
+            else:
+                raise
+
+
 def force_cold_start(function_name: str, memory_mb: int) -> None:
     """
     Force a cold start by updating Lambda function configuration.
@@ -431,16 +457,11 @@ def force_cold_start(function_name: str, memory_mb: int) -> None:
             LAMBDA_MEMORY_MIN_MB, min(LAMBDA_MEMORY_MAX_MB, temp_memory)
         )
 
-        lambda_client.update_function_configuration(
-            FunctionName=function_name, MemorySize=temp_memory
-        )
-
-        waiter = lambda_client.get_waiter("function_updated")
-        waiter.wait(FunctionName=function_name)
+        _update_function_memory_with_retry(function_name, temp_memory)
         time.sleep(COLD_START_STABILIZATION_DELAY_SECONDS)
 
-    # Set final target memory - no need to wait, Lambda will queue invocations
-    lambda_client.update_function_configuration(FunctionName=function_name, MemorySize=memory_mb)
+    # Set final target memory and wait for completion
+    _update_function_memory_with_retry(function_name, memory_mb)
 
 
 # =============================================================================
