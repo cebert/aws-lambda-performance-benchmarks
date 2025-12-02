@@ -46,6 +46,12 @@ See [docs/benchmark-design.md](./docs/benchmark-design.md) for full details.
 
 Pre-computed benchmark results are available in the [published-results](./published-results) folder:
 
+- **[December 2025](./published-results/december-2025/)** - Ran a new modified run run with 94,080 invocations (20 cold + 300 warm per config) to benchmark Rust improvements. The focus was to confirm if these changes improved Rust arm performance for the CPU intensive tests. Cold start benchmarks ended up being a less interesting aspect of this benchmark, so I reduced them in this run so that the benchmark could be completed faster.
+  - Includes **Rust ARM64 4-5x performance improvement** via assembly-optimized SHA-256 hashing
+  - Key change: Enabled `asm` feature on `sha2` crate to leverage NEON SIMD instructions on ARM64
+  - Thanks to [Khawaja Shams](https://github.com/khawajashams) for the optimization suggestion
+  - See [Rust SSE Optimization Comparison chart](./published-results/december-2025/charts/rust-sse-optimization-comparison.png)
+
 - **[November 2025](./published-results/november-2025/)** - Production run with 183,750 invocations (125 cold + 500 warm per config)
   - 7 runtimes (Python 3.11-3.14, Node.js 20/22, Rust)
   - ARM64 vs x86_64 comparisons
